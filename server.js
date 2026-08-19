@@ -29,8 +29,8 @@ const server = http.createServer((req, res) => {
     if (req.method === "POST" && req.url === "/api/chat") {
         readRequestBody(req)
             .then(async (body) => {
-                if (!process.env.GROK_API_KEY) {
-                    sendJson(res, 500, { error: "GROK_API_KEY is not configured on the server" });
+                if (!process.env.GROQ_API_KEY) {
+                    sendJson(res, 500, { error: "GROQ_API_KEY is not configured on the server" });
                     return;
                 }
 
@@ -50,7 +50,7 @@ const server = http.createServer((req, res) => {
                 const groqResponse = await fetch(groqApiUrl, {
                     method: "POST",
                     headers: {
-                        "Authorization": `Bearer ${process.env.GROK_API_KEY}`,
+                        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
