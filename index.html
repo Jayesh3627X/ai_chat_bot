@@ -130,6 +130,7 @@
         const input = document.getElementById("message-input");
         const messages = document.getElementById("messages");
         const clearButton = document.getElementById("clear-button");
+        const conversation = [];
 
         function addMessage(author, text, isUser) {
             const article = document.createElement("article");
@@ -140,21 +141,35 @@
             messages.scrollTop = messages.scrollHeight;
         }
 
-        function replyTo(text) {
-            const lower = text.toLowerCase();
-            if (lower.includes("hello") || lower.includes("hi")) return "Hello. It is good to have you here. What is on your mind?";
-            if (lower.includes("help")) return "I can help you shape an idea, explain a topic, or plan the next step. Start wherever feels natural.";
-            return `I hear you: “${text}”. Tell me a little more, and we can work through it together.`;
+        async function sendToGrok(text) {
+            conversation.push({ role: "user", content: text });
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messages: conversation })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "The assistant could not respond");
+            conversation.push({ role: "assistant", content: data.message });
+            return data.message;
         }
 
-        form.addEventListener("submit", (event) => {
+        form.addEventListener("submit", async (event) => {
             event.preventDefault();
             const text = input.value.trim();
             if (!text) return;
             addMessage("You", text, true);
             input.value = "";
             input.style.height = "auto";
-            window.setTimeout(() => addMessage("Orbit", replyTo(text), false), 350);
+            input.disabled = true;
+            try {
+                addMessage("Orbit", await sendToGrok(text), false);
+            } catch (error) {
+                addMessage("Orbit", `I couldn't reach the assistant: ${error.message}`, false);
+            } finally {
+                input.disabled = false;
+                input.focus();
+            }
         });
 
         input.addEventListener("keydown", (event) => {
@@ -171,6 +186,7 @@
 
         clearButton.addEventListener("click", () => {
             messages.innerHTML = "";
+            conversation.length = 0;
             addMessage("Orbit", "The conversation is clear. What would you like to explore?", false);
             input.focus();
         });
