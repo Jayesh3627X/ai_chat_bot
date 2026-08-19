@@ -1,8 +1,9 @@
 const http = require("http");
 const fs = require("fs");
+const path = require("path");
 
 const server = http.createServer((req, res) => {
-    fs.readFile("index.html", (err, data) => {
+    fs.readFile(path.join(__dirname, "index.html"), (err, data) => {
         if (err) {
             res.writeHead(500);
             res.end("Error loading page");
@@ -17,6 +18,8 @@ const server = http.createServer((req, res) => {
     });
 });
 
-server.listen(3000, () => {
-    console.log("Server running at http://localhost:3000");
+const port = process.env.PORT || 3000;
+
+server.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
 });

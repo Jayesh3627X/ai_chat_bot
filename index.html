@@ -1,10 +1,179 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>My Node Server</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit Chat</title>
+    <style>
+        :root {
+            --ink: #17221f;
+            --muted: #71807b;
+            --paper: #f4f1e9;
+            --panel: #fffdf8;
+            --line: #dce1d8;
+            --accent: #176b58;
+            --accent-soft: #dceee7;
+            --shadow: 0 24px 70px rgba(23, 34, 31, 0.12);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            font-family: Georgia, "Times New Roman", serif;
+            background: linear-gradient(135deg, #ece8dc 0%, #f8f5ed 48%, #dfece4 100%);
+        }
+
+        button, textarea { font: inherit; }
+
+        .shell {
+            width: min(1100px, calc(100% - 32px));
+            min-height: min(760px, calc(100vh - 48px));
+            margin: 24px auto;
+            display: grid;
+            grid-template-columns: 290px 1fr;
+            overflow: hidden;
+            background: var(--panel);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            animation: arrive 500ms ease-out both;
+        }
+
+        .sidebar {
+            padding: 30px 24px;
+            color: #e7f1eb;
+            background: #183c34;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand { display: flex; align-items: center; gap: 11px; }
+        .brand-mark {
+            width: 34px; height: 34px; display: grid; place-items: center;
+            color: #183c34; background: #c3e7d8; border-radius: 10px; font-size: 18px;
+        }
+        .brand strong { font-size: 20px; letter-spacing: 0.2px; }
+        .eyebrow { margin: 58px 0 12px; color: #a5c8bb; font: 700 11px/1.2 Arial, sans-serif; letter-spacing: 1.8px; text-transform: uppercase; }
+        .sidebar h2 { margin: 0; max-width: 210px; font-size: 32px; line-height: 1.05; font-weight: normal; }
+        .sidebar p { margin: 18px 0 0; color: #b9d1c7; font: 14px/1.55 Arial, sans-serif; }
+        .status { margin-top: auto; display: flex; align-items: center; gap: 9px; color: #b9d1c7; font: 12px Arial, sans-serif; }
+        .status::before { content: ""; width: 8px; height: 8px; background: #8fddb3; border-radius: 50%; box-shadow: 0 0 0 4px rgba(143, 221, 179, 0.14); }
+
+        .chat { min-width: 0; display: flex; flex-direction: column; }
+        .chat-header { padding: 27px 34px 22px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+        .chat-header h1 { margin: 0 0 5px; font-size: 26px; font-weight: normal; }
+        .chat-header p { margin: 0; color: var(--muted); font: 13px Arial, sans-serif; }
+        .clear { border: 0; color: var(--muted); background: transparent; cursor: pointer; font: 12px Arial, sans-serif; }
+        .clear:hover { color: var(--accent); }
+
+        .messages { flex: 1; min-height: 300px; padding: 30px 34px; overflow-y: auto; background: #fcfbf7; }
+        .message { max-width: 75%; margin-bottom: 22px; animation: rise 260ms ease-out both; }
+        .message.user { margin-left: auto; }
+        .message-label { display: block; margin-bottom: 7px; color: var(--muted); font: 700 10px Arial, sans-serif; letter-spacing: 1.3px; text-transform: uppercase; }
+        .bubble { padding: 13px 16px; border: 1px solid var(--line); border-radius: 4px 15px 15px 15px; background: white; font-size: 16px; line-height: 1.45; }
+        .user .bubble { border-color: var(--accent); color: white; background: var(--accent); border-radius: 15px 4px 15px 15px; }
+
+        .composer-wrap { padding: 20px 34px 27px; border-top: 1px solid var(--line); background: var(--panel); }
+        .composer { display: flex; align-items: flex-end; gap: 12px; padding: 7px 8px 7px 15px; border: 1px solid #cbd5cd; border-radius: 13px; background: white; transition: border-color 160ms ease, box-shadow 160ms ease; }
+        .composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+        textarea { width: 100%; min-height: 25px; max-height: 110px; resize: none; border: 0; outline: 0; color: var(--ink); background: transparent; font: 15px/1.5 Arial, sans-serif; }
+        textarea::placeholder { color: #9aa69f; }
+        .send { width: 38px; height: 38px; flex: 0 0 auto; border: 0; border-radius: 9px; color: white; background: var(--accent); cursor: pointer; font: 20px Arial, sans-serif; transition: transform 160ms ease, background 160ms ease; }
+        .send:hover { background: #0d5545; transform: translateY(-2px); }
+        .hint { margin: 10px 2px 0; color: #99a39d; font: 11px Arial, sans-serif; }
+
+        @keyframes arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 700px) {
+            .shell { width: 100%; min-height: 100vh; margin: 0; border: 0; border-radius: 0; grid-template-columns: 1fr; }
+            .sidebar { min-height: 170px; padding: 22px 22px 20px; }
+            .eyebrow { margin-top: 28px; }
+            .sidebar h2 { font-size: 27px; }
+            .sidebar p { display: none; }
+            .status { margin-top: 20px; }
+            .chat-header, .messages, .composer-wrap { padding-left: 20px; padding-right: 20px; }
+            .message { max-width: 88%; }
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello from Node.js!</h1>
-    <p>This HTML page is being served by a Node.js server.</p>
+    <main class="shell">
+        <aside class="sidebar">
+            <div class="brand"><span class="brand-mark">✦</span><strong>Orbit</strong></div>
+            <span class="eyebrow">A quiet place to think</span>
+            <h2>Ask better questions.</h2>
+            <p>Write freely, untangle ideas, and keep the useful parts close.</p>
+            <div class="status">Assistant ready</div>
+        </aside>
+        <section class="chat" aria-label="Chat with Orbit">
+            <header class="chat-header">
+                <div><h1>New conversation</h1><p>Thoughtful answers, one message at a time.</p></div>
+                <button class="clear" id="clear-button" type="button">Clear chat</button>
+            </header>
+            <div class="messages" id="messages" aria-live="polite">
+                <article class="message"><span class="message-label">Orbit</span><div class="bubble">Hello. What would you like to explore today?</div></article>
+            </div>
+            <div class="composer-wrap">
+                <form class="composer" id="chat-form">
+                    <textarea id="message-input" rows="1" placeholder="Type your message..." aria-label="Message" required></textarea>
+                    <button class="send" type="submit" aria-label="Send message" title="Send message">↑</button>
+                </form>
+                <p class="hint">Press Enter to send · Shift + Enter for a new line</p>
+            </div>
+        </section>
+    </main>
+    <script>
+        const form = document.getElementById("chat-form");
+        const input = document.getElementById("message-input");
+        const messages = document.getElementById("messages");
+        const clearButton = document.getElementById("clear-button");
+
+        function addMessage(author, text, isUser) {
+            const article = document.createElement("article");
+            article.className = `message${isUser ? " user" : ""}`;
+            article.innerHTML = `<span class="message-label">${author}</span><div class="bubble"></div>`;
+            article.querySelector(".bubble").textContent = text;
+            messages.appendChild(article);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function replyTo(text) {
+            const lower = text.toLowerCase();
+            if (lower.includes("hello") || lower.includes("hi")) return "Hello. It is good to have you here. What is on your mind?";
+            if (lower.includes("help")) return "I can help you shape an idea, explain a topic, or plan the next step. Start wherever feels natural.";
+            return `I hear you: “${text}”. Tell me a little more, and we can work through it together.`;
+        }
+
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const text = input.value.trim();
+            if (!text) return;
+            addMessage("You", text, true);
+            input.value = "";
+            input.style.height = "auto";
+            window.setTimeout(() => addMessage("Orbit", replyTo(text), false), 350);
+        });
+
+        input.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                form.requestSubmit();
+            }
+        });
+
+        input.addEventListener("input", () => {
+            input.style.height = "auto";
+            input.style.height = `${Math.min(input.scrollHeight, 110)}px`;
+        });
+
+        clearButton.addEventListener("click", () => {
+            messages.innerHTML = "";
+            addMessage("Orbit", "The conversation is clear. What would you like to explore?", false);
+            input.focus();
+        });
+    </script>
 </body>
 </html>
